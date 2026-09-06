@@ -12,18 +12,10 @@ jobs:
         with: { python-version: "3.12" }
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
-      - name: Python builds all examples & all presets
-        run: |
-          set -e
-          python3 build.py --list-presets
-          for p in teal ocean violet sunset rose mono emerald; do
-            python3 build.py examples/choosing-a-framework.json -o /tmp/$p.html --preset $p
-          done
-          python3 build.py examples/orca-herdr.json -o /tmp/orca.html
-          python3 build.py examples/orca-herdr.json -o /tmp/dark.html --preset teal --dark
-      - name: Validate emitted JS in every build
-        run: |
-          node tools/validate.js
+      - name: Presets list
+        run: python3 build.py --list-presets
+      - name: Build all examples × presets + JS/icon/scaffold checks
+        run: node tools/validate.js
       - name: Posters render
         run: python3 tools/posters.py -o /tmp/posters
 
@@ -35,3 +27,5 @@ jobs:
         with: { node-version: "20" }
       - name: npx wrapper works
         run: node bin/deckforge.js examples/orca-herdr.json -o /tmp/npx.html && test -f /tmp/npx.html
+      - name: wrapper propagates failure exit codes (bad preset must fail)
+        run: if node bin/deckforge.js examples/orca-herdr.json -o /tmp/bad.html --preset bogus; then echo "should have failed"; exit 1; fi

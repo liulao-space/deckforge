@@ -36,11 +36,11 @@ DeckForge engine so quality stays consistent and the deck stays maintainable.
    python tools/capture.py out.html -o out.pdf  --format pdf    # PDF
    python tools/capture.py out.html -o pages/   --format pages  # per-slide PNG
    ```
-5. **Verify**: open `out.html` (or `--watch` while editing). Check that
+6. **Verify**: open `out.html` (or `--watch` while editing). Check that
    - content fits (long blocks → use a shorter list or `--dark`, or it inner-scrolls);
    - no overlong lines get clipped;
    - every referenced icon (`icon`/`tile`) exists in `templates/icons.svg`.
-6. **Present** the output file to the user.
+7. **Present** the output file to the user.
 
 ## Content DSL
 
@@ -80,7 +80,7 @@ A slide:
 
 **Inline markup**: `**bold**`, `` `code` ``, `[link](url)`, and `<br>` for line breaks.
 
-**Icons**: reference by name (no `i-` prefix). Available: orca, herdr, window, board,
+**Icons**: reference by name (no `i-` prefix; a leading `i-` is also accepted). Available: orca, herdr, window, board,
 phone, click, laptop, socket, loop, lock, eye, term, branch, merged, compass, note,
 warn, robot, globe, stack. Extend in `templates/icons.svg`.
 
@@ -118,8 +118,9 @@ These were real bugs and are now handled — do NOT reintroduce them:
    edit icons.svg, keep comment syntax `<!-- -->`.
 2. **Wheel over-scroll.** One trackpad/mouse gesture emits many small `deltaY`s.
    The engine **accumulates** wheel deltas and only flips a page past a threshold
-   (120px), and ignores input mid-transition (`busy`), so a single gesture = exactly
-   ONE page. Never replace this with a naive `deltaY > 0 → next page`.
+   (120px), ignores input mid-transition (`busy`), and decays the accumulator
+   after ~240ms idle, so a single gesture = exactly ONE page. Never replace this
+   with a naive `deltaY > 0 → next page`.
 3. **Never hand-write the `<script>` transport** (pager, wheel, cursor, rail). It's
    owned by `templates/base.js`. Adding your own `scroll-snap`, `cursor:none`,
    or a second wheel handler will conflict.

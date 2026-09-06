@@ -1,7 +1,7 @@
 <!--
   DeckForge · icon set (linear stroke, currentColor)
   Add your own icon by appending a <symbol id="i-NAME" viewBox="0 0 24 24">.
-  Reference it in content as {icon: "i-NAME"}.
+  Reference it in content as {icon: "NAME"} — a leading "i-" also works.
 -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>

@@ -10,7 +10,7 @@ Usage:
     Watch (re-render on change):
     python build.py content.json -o out.html --watch
 """
-import argparse, json, pathlib, sys, datetime
+import argparse, json, os, pathlib, re, sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 TEMP = HERE / "templates"
@@ -20,6 +20,7 @@ TEMP = HERE / "templates"
 # helpers
 # ------------------------------------------------------------------
 def esc(s: str) -> str:
+    """HTML-escape for text and attribute contexts."""
     return (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             .replace('"', "&quot;"))
 
@@ -27,19 +28,37 @@ def esc(s: str) -> str:
 def markup(s: str) -> str:
     """Inline conveniences: **bold**, `code`, [text](link), and <br> as a real line break.
     Everything else is escaped so raw user input can't inject markup."""
-    s = str(s)
+    s = str(s).replace("\x00", "")  # NUL is reserved for the <br> trick below
     # protect the literal <br> so it survives escaping as a real break
     s = s.replace("<br>", "\x00BR\x00")
-    s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     s = s.replace("\x00BR\x00", "<br/>")
-    s = s.replace('**', "<b>").replace('`', "<code style='color:var(--accent)'>")
-    import re
-    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" style="color:var(--accent)">\1</a>', s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+    s = re.sub(r"`([^`]+)`", r"<code style='color:var(--accent)'>\1</code>", s)
+    s = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2" style="color:var(--accent)">\1</a>', s)
     return s
 
 
+def _px(v, default):
+    """Sanitize a JSON-supplied px length: only plain numbers survive."""
+    try:
+        return str(max(0.0, float(v)))
+    except (TypeError, ValueError):
+        return str(default)
+
+
+_PILL_ALIGNS = ("center", "left", "right", "flex-start", "flex-end", "space-between")
+_VALID_MARKS = ("y", "n", "p")
+
+
 def icon(name, cls=""):
-    return f'<svg class="ico {cls}"><use href="#{name}"/></svg>' if name else ""
+    """Embed a symbol reference. Accepts names with or without the `i-` prefix."""
+    if not name:
+        return ""
+    ref = str(name).strip()
+    if not ref.startswith("i-"):
+        ref = "i-" + ref
+    return f'<svg class="ico {cls}"><use href="#{esc(ref)}"/></svg>'
 
 
 def tile(name, am=False):
@@ -51,21 +70,27 @@ def tile(name, am=False):
 # ------------------------------------------------------------------
 def r_pills(b):
     items = b.get("items", [])
+    align = b.get("align", "center")
+    if align not in _PILL_ALIGNS:
+        align = "center"
     pills = []
     for it in items:
         cls = "pill"
         if it.get("kind") == "b": cls = "pill b"
         elif it.get("kind") == "am": cls = "pill am"
-        pills.append(f'<span class="{cls}">{icon(it.get("icon"))} {markup(it["text"])}</span>')
-    return '<div style="display:flex;gap:12px;justify-content:' + (b.get("align", "center")) + ';flex-wrap:wrap;margin-top:' + str(b.get("margin", 24)) + 'px">' + "".join(pills) + "</div>"
+        pills.append(f'<span class="{cls}">{icon(it.get("icon"))} {markup(it.get("text", ""))}</span>')
+    return ('<div style="display:flex;gap:12px;justify-content:' + align
+            + ';flex-wrap:wrap;margin-top:' + _px(b.get("margin", 24), 24) + 'px">' + "".join(pills) + "</div>")
 
 
 def r_cards(b):
-    cols = b.get("cols", 3)
+    try:
+        cols = min(max(int(b.get("cols", 3)), 1), 12)
+    except (TypeError, ValueError):
+        cols = 3
     items = []
-    for i, c in enumerate(b["items"]):
-        d = "tile" if c.get("tile") else "num"
-        head = (tile(c.get("tile")) if c.get("tile") else f'<div class="num">{c.get("num","")}</div>')
+    for c in b.get("items", []):
+        head = (tile(c.get("tile")) if c.get("tile") else f'<div class="num">{esc(c.get("num", ""))}</div>')
         body = f'<h3 style="margin-top:12px">{markup(c["title"])}</h3>' if c.get("title") else ""
         if c.get("text"):
             body += f'<p style="margin:.5em 0 0;font-size:.95rem;line-height:1.65">{markup(c["text"])}</p>'
@@ -73,11 +98,11 @@ def r_cards(b):
     return f'<div class="grid" style="grid-template-columns:repeat({cols},1fr)">{"".join(items)}</div>'
 
 
-def UL(entries, accent="var(--accent)"):
+def UL(entries):
     lis = []
     for e in entries:
         if isinstance(e, dict):
-            lis.append(f'<li>{icon(e.get("icon"))} {markup(e["text"])}</li>')
+            lis.append(f'<li>{icon(e.get("icon"))} {markup(e.get("text", ""))}</li>')
         else:
             lis.append(f"<li>{markup(e)}</li>")
     return '<ul style="list-style:none;margin-top:14px;display:grid;gap:11px;font-size:.95rem;color:var(--ink-dim)">' + "".join(lis) + "</ul>"
@@ -89,23 +114,22 @@ def r_card_ul(b):
 
 
 def r_terminal(b):
-    lines = b["lines"]
-    hl = "".join(f"<pre>\n" for _ in range(0))
     pre = []
-    for ln in lines:
+    for i, ln in enumerate(b.get("lines", [])):
+        delay = min(i * 0.12, 1.2)  # staggered per-line reveal; capped for exports
         if isinstance(ln, dict):
-            t = ln.get("text", "")
+            t = esc(ln.get("text", ""))
             color = {"teal": "t-teal", "amb": "t-amb", "ok": "t-ok", "dim": "t-dim", "wt": "t-wt"}.get(ln.get("color", "wt"), "t-wt")
-            pre.append(f'<span class="{color}">{t}</span><br>')
+            pre.append(f'<span class="ln {color}" style="--d:{delay:.2f}s">{t}</span><br>')
         else:
-            pre.append(markup(ln) + "<br>")
+            pre.append(f'<span class="ln" style="--d:{delay:.2f}s">{markup(ln)}</span><br>')
     return ('<div class="term"><div class="bar"><i></i><i></i><i></i></div>'
             f'<pre>{"".join(pre)}<span class="termcur"></span></pre></div>')
 
 
 def r_table(b):
-    headers = b["header"]
-    rows = b["rows"]
+    headers = b.get("header", [])
+    rows = b.get("rows", [])
     marks = b.get("marks", [])  # list of 'y'|'n'|'p'|'' per cell
     th = "".join(f'<th>{markup(h)}</th>' for h in headers)
     body = []
@@ -113,13 +137,14 @@ def r_table(b):
         c = []
         for ci, cell in enumerate(row):
             cls = marks[ri][ci] if ri < len(marks) and ci < len(marks[ri]) else ""
+            if cls not in _VALID_MARKS:
+                cls = ""
             if ci == 0:
                 c.append(f'<td class="lbl">{markup(cell)}</td>')
             elif cls:
                 c.append(f'<td><span class="{cls}">{markup(cell)}</span></td>')
             else:
                 c.append(f"<td>{markup(cell)}</td>")
-        headcol = f'<td class="lbl">{markup(cell)}</td>'
         body.append("<tr>" + "".join(c) + "</tr>")
     return (f'<div class="tabwrap"><table><thead><tr>{th}</tr></thead><tbody>{"".join(body)}</tbody></table></div>')
 
@@ -134,13 +159,13 @@ def r_vs(b):
             f'{icon(right.get("icon"))}{markup(right["name"])}</span>'
             f'<h3 style="margin-top:12px">{markup(right["title"])}</h3>{UL(right.get("items", []))}'
             f'<span class="tag her">{markup(right.get("tag",""))}</span></div>')
-    mid = f'<div class="mid"><div class="vsbadge">{b.get("badge","VS")}</div></div>'
+    mid = f'<div class="mid"><div class="vsbadge">{esc(b.get("badge","VS"))}</div></div>'
     return f'<div class="vs">{colA}{mid}{colB}</div>'
 
 
 def r_flow(b):
     nodes = []
-    for nd in b["nodes"]:
+    for nd in b.get("nodes", []):
         am = nd.get("tag") == "her"
         nodes.append(f'<div class="node"><div class="icon">{tile(nd.get("icon"), am)}</div>'
                      f'<h4>{markup(nd["title"])}</h4><p>{markup(nd["desc"])}</p>'
@@ -149,20 +174,20 @@ def r_flow(b):
 
 
 def r_steps(b):
-    kind = b.get("accent", "a")  # 'a' accent OR 'am' accent-2
     lis = []
-    for i, s in enumerate(b["items"]):
+    for s in b.get("items", []):
         head = s.get("head")
         body = s.get("body", "")
         code = s.get("code")
         hh = f'<div><span class="s-head">{markup(head)}</span>' if head else "<div>"
-        cc = f'<div style="margin-top:10px;background:#0c1a16;border-radius:10px;padding:12px 14px;overflow-x:auto;font-family:monospace;font-size:.78rem;line-height:1.75;color:#eafaf5;white-space:pre">{code}</div>' if code else ""
+        cc = (f'<div style="margin-top:10px;background:#0c1a16;border-radius:10px;padding:12px 14px;overflow-x:auto;'
+              f'font-family:monospace;font-size:.78rem;line-height:1.75;color:#eafaf5;white-space:pre">{esc(code)}</div>') if code else ""
         lis.append(f'<li>{hh}<p style="color:var(--ink-dim);font-size:.93rem;line-height:1.6">{markup(body)}</p>{cc}</div></li>')
     return '<ol class="steps-ol">' + "".join(lis) + "</ol>"
 
 
 def r_warn(b):
-    return f'<div class="warn" style="margin-top:{b.get("margin",22)}px">{icon("i-warn")} {markup(b["text"])}</div>'
+    return f'<div class="warn" style="margin-top:{_px(b.get("margin", 22), 22)}px">{icon("warn")} {markup(b["text"])}</div>'
 
 
 def r_quote(b):
@@ -187,21 +212,21 @@ def build_slide(slide, i):
         _cls = 'rv d2'
         if slide.get("grad"):
             _cls += ' grad'
-        m = 18
-        parts.append(f'<h2 class="{_cls}" style="margin:{m}px 0 6px">{markup(slide["title"])}</h2>')
+        parts.append(f'<h2 class="{_cls}" style="margin:18px 0 6px">{markup(slide["title"])}</h2>')
     if slide.get("lead"):
         parts.append(f'<p class="rv d3" style="margin-top:0;max-width:820px">{markup(slide["lead"])}</p>')
     for j, block in enumerate(slide.get("blocks", [])):
-        r = RENDERERS.get(block["type"])
+        if not isinstance(block, dict):
+            raise ValueError(f"第 {i+1} 页的 blocks[{j}] 必须是对象，得到 {type(block).__name__}")
+        r = RENDERERS.get(block.get("type"))
         if r:
-            parts.append(f'<div class="rv d{j+2}" style="margin-top:{block.get("margin", 30)}px">{r(block)}</div>')
+            parts.append(f'<div class="rv d{j+2}" style="margin-top:{_px(block.get("margin", 30), 30)}px">{r(block)}</div>')
+        else:
+            raise ValueError(f"第 {i+1} 页存在未知 block 类型「{block.get('type')}」，可用：{', '.join(RENDERERS)}")
     body = "".join(parts)
     return f'<section class="section{" center" if align=="center" else ""}" data-title="{esc(slide.get("title",""))}"><div class="wrap{" center" if align=="center" else ""}">{body}</div></section>'
 
 
-# ------------------------------------------------------------------
-# full document
-# ------------------------------------------------------------------
 # ------------------------------------------------------------------
 # theme presets
 # ------------------------------------------------------------------
@@ -217,7 +242,8 @@ DARK = {
     "bg": "#0d1f1b", "bg-soft": "#0a1613", "card": "#122a24",
     "card-2": "linear-gradient(180deg,#143329,#10241f)",
     "ink": "#eafaf5", "ink-dim": "#9fc4ba",
-    "line": "rgba(18,135,111,.28)",
+    # NOTE: `line` is derived from the accent per theme (see theme_vars),
+    # so dark mode stays consistent across every preset.
 }
 
 PRESETS = {
@@ -232,7 +258,9 @@ PRESETS = {
 
 
 def _hex_to_rgb(h):
-    h = h.lstrip("#")
+    h = str(h).lstrip("#")
+    if len(h) == 3:
+        h = "".join(ch * 2 for ch in h)
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
@@ -252,6 +280,23 @@ def _shade(hexc, amt):
     return f"#{nr:02x}{ng:02x}{nb:02x}"
 
 
+def _accent_arg(v):
+    """argparse type for --accent: accepts #1a73e8, 1a73e8, #fff (short hex)."""
+    s = str(v).strip()
+    if s and not s.startswith("#"):
+        s = "#" + s
+    h = s[1:]
+    if len(h) == 3:
+        h = "".join(ch * 2 for ch in h)
+    if len(h) != 6:
+        raise argparse.ArgumentTypeError(f"accent 需要 6 位 hex（如 #1a73e8），得到「{v}」")
+    try:
+        int(h, 16)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"accent 不是合法 hex：「{v}」")
+    return "#" + h.lower()
+
+
 def theme_vars(accent_hex, dark=False):
     """Full :root CSS variable block for a theme, driven by ONE accent color."""
     base = DARK if dark else LIGHT
@@ -266,29 +311,34 @@ def theme_vars(accent_hex, dark=False):
     ]
     for k, v in base.items():
         parts.append(f"--{k}: {v}")
+    if dark:
+        # accent-derived hairline so borders follow the preset, not teal
+        parts.append(f"--line: {_mix(a, .28)}")
     return ":root{" + ";".join(parts) + "}"
 
 
 FRAMES = ["clean", "bold", "minimal"]
 
 
-def build(content, accent=None, preset=None, dark=False, frame="clean", out=None):
+def build(content, accent=None, preset=None, dark=False, frame="clean", out=None, lang="zh-CN"):
     if frame not in FRAMES:
-        frame = "clean"
+        raise ValueError(f"未知 frame「{frame}」，可选：{', '.join(FRAMES)}")
+    if preset is not None and preset not in PRESETS:
+        raise ValueError(f"未知 preset「{preset}」，可选：{', '.join(PRESETS)}")
     css = (TEMP / "base.css").read_text(encoding="utf-8")
     icons = (TEMP / "icons.svg").read_text(encoding="utf-8")
     js = (TEMP / "base.js").read_text(encoding="utf-8")
 
     # precedence: --accent > --preset > content accent > default teal
     if accent is None:
-        accent = PRESETS.get(preset, PRESETS["teal"])["accent"] if preset else \
+        accent = PRESETS[preset]["accent"] if preset else \
                  (content.get("accent") or PRESETS["teal"]["accent"])
     theme = "<style>" + theme_vars(accent, dark) + "</style>"
 
     slides = [build_slide(s, i) for i, s in enumerate(content["slides"])]
 
     doc = f"""<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{esc(lang)}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -312,30 +362,45 @@ def build(content, accent=None, preset=None, dark=False, frame="clean", out=None
     if out:
         p = pathlib.Path(out); p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(doc, encoding="utf-8")
-        print(f"[deckforge] wrote {pathlib.Path(out).resolve()} ({len(pathlib.Path(out).read_text(encoding='utf-8'))//1024} KB)")
+        print(f"[deckforge] wrote {p.resolve()} ({len(doc.encode('utf-8'))//1024} KB)")
     return doc
 
 
 # ------------------------------------------------------------------
 # init: interactive scaffolding
 # ------------------------------------------------------------------
+def _ask(msg, defa=""):
+    """input() that degrades gracefully when stdin is closed (CI / agent use)."""
+    try:
+        return input(f"  {msg}" + (f" [{defa}]" if defa else "") + " » ") or defa
+    except EOFError:
+        return defa
+
+
 def cmd_init(args):
     """Interactive creator — asks questions and writes a content.json (plus builds it)."""
-    import sys
-    ask = lambda msg, defa="": input(f"  {msg}" + (f" [{defa}]" if defa else "") + " » ") or defa
-    # sensible defaults so Enter works for every step
-    title = ask("Deck 标题", "我的演示") or "我的演示"
-    theme = ask("主题 preset (teal/ocean/violet/sunset/rose/mono/emerald)", "teal") or "teal"
-    dark = input("  Dark 主题? [y/N] » ").strip().lower() in ("y", "yes")
-    n = int(ask("想生成几页内容示例?", "5") or "5")
-    topic = ask("一句话主题关键词（用于示例文字）", "产品发布") or "产品发布"
+    title = _ask("Deck 标题", "我的演示") or "我的演示"
+    theme = _ask("主题 preset (teal/ocean/violet/sunset/rose/mono/emerald)", "teal") or "teal"
+    if theme not in PRESETS:
+        print(f"  ⚠ 未知 preset「{theme}」，改用 teal")
+        theme = "teal"
+    try:
+        dark = input("  Dark 主题? [y/N] » ").strip().lower() in ("y", "yes")
+    except EOFError:
+        dark = False
+    try:
+        n = int(_ask("想生成几页内容示例?", "5") or "5")
+    except ValueError:
+        n = 5
+    n = max(1, min(n, 10))
+    topic = _ask("一句话主题关键词（用于示例文字）", "产品发布") or "产品发布"
 
     slides = [{
         "align": "center", "title": title, "grad": True,
         "lead": f"这是 {topic} 的封面。用 **DeckForge** 生成。",
         "blocks": [{"type": "pills", "items": [
-            {"text": "亮点一", "icon": "i-globe", "kind": "b"},
-            {"text": "亮点二", "icon": "i-play", "kind": "am"}]}],
+            {"text": "亮点一", "icon": "globe", "kind": "b"},
+            {"text": "亮点二", "icon": "play", "kind": "am"}]}],
     }]
     examples = [
         {"eyebrow": "01 · 背景", "title": "为什么值得关注", "lead": "用 **lead** 写一句话说明背景。",
@@ -344,14 +409,14 @@ def cmd_init(args):
              {"num": "②", "title": "第二点", "text": "描述第二个要点。"},
              {"num": "③", "title": "第三点", "text": "描述第三个要点。"}]}]},
         {"eyebrow": "02 · 对比", "title": "两种方案对比", "lead": "用 vs 块做对比。",
-         "blocks": [{"type": "vs", "left": {"name": "方案 A", "icon": "i-orca", "title": "围绕任务", "tag": "A", "items": ["要点一", "要点二", "要点三"]},
-                    "right": {"name": "方案 B", "icon": "i-herdr", "title": "围绕会话", "tag": "B", "items": ["要点一", "要点二", "要点三"]}}]},
+         "blocks": [{"type": "vs", "left": {"name": "方案 A", "icon": "orca", "title": "围绕任务", "tag": "A", "items": ["要点一", "要点二", "要点三"]},
+                    "right": {"name": "方案 B", "icon": "herdr", "title": "围绕会话", "tag": "B", "items": ["要点一", "要点二", "要点三"]}}]},
         {"eyebrow": "03 · 决策", "title": "如何选择", "lead": "用 flow 块做决策。",
          "blocks": [{"type": "flow", "nodes": [
-             {"icon": "i-eye", "title": "想看得见", "desc": "描述场景", "tag": "orca", "tag_text": "选 A"},
-             {"icon": "i-term", "title": "想脚本化", "desc": "描述场景", "tag": "her", "tag_text": "选 B"},
-             {"icon": "i-branch", "title": "不冲突", "desc": "描述场景", "tag": "orca", "tag_text": "先 A"},
-             {"icon": "i-socket", "title": "不丢失", "desc": "描述场景", "tag": "her", "tag_text": "先 B"}]}]},
+             {"icon": "eye", "title": "想看得见", "desc": "描述场景", "tag": "orca", "tag_text": "选 A"},
+             {"icon": "term", "title": "想脚本化", "desc": "描述场景", "tag": "her", "tag_text": "选 B"},
+             {"icon": "branch", "title": "不冲突", "desc": "描述场景", "tag": "orca", "tag_text": "先 A"},
+             {"icon": "socket", "title": "不丢失", "desc": "描述场景", "tag": "her", "tag_text": "先 B"}]}]},
         {"eyebrow": "04 · 实操", "title": "一步步上手", "lead": "用 steps 做教程。",
          "blocks": [{"type": "steps", "items": [
              {"head": "第一步", "body": "描述这一步。", "code": "$ command here"},
@@ -361,7 +426,7 @@ def cmd_init(args):
     ]
     slides += examples[: max(0, n - 1)]
 
-    content = {"title": title, "accent": PRESETS.get(theme, PRESETS["teal"])["accent"], "slides": slides}
+    content = {"title": title, "accent": PRESETS[theme]["accent"], "slides": slides}
     p = pathlib.Path(args.out or "content.json")
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -373,12 +438,11 @@ def cmd_init(args):
 
 def cmd_new(args):
     """Non-interactive: scaffold a fresh content.json from a topic title."""
-    import json as _j
     t = args.new or "我的演示"
     content = {"title": t, "accent": "#12876f", "slides": [
         {"align": "center", "title": t, "grad": True, "lead": "用 **DeckForge** 生成的封面。",
-         "blocks": [{"type": "pills", "items": [{"text": "标题一", "icon": "i-globe", "kind": "b"},
-                                                {"text": "标题二", "icon": "i-play", "kind": "am"}]}]},
+         "blocks": [{"type": "pills", "items": [{"text": "标题一", "icon": "globe", "kind": "b"},
+                                                {"text": "标题二", "icon": "play", "kind": "am"}]}]},
         {"eyebrow": "01", "title": "背景", "lead": "一句话说明背景。",
          "blocks": [{"type": "cards", "cols": 3, "items": [
              {"num": "①", "title": "要点", "text": "描述。"},
@@ -389,8 +453,31 @@ def cmd_new(args):
     ]}
     p = pathlib.Path(args.out or "content.json")
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(_j.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")
+    p.write_text(json.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"✔ 模板已写入 {p}")
+
+
+def load_content(path):
+    """Read + validate content.json with friendly, actionable error messages."""
+    p = pathlib.Path(path)
+    try:
+        text = p.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        sys.exit(f"[deckforge] ✘ 找不到内容文件：{path}")
+    except IsADirectoryError:
+        sys.exit(f"[deckforge] ✘ 这是目录不是 JSON 文件：{path}")
+    except UnicodeDecodeError:
+        sys.exit(f"[deckforge] ✘ 文件不是 UTF-8 编码，请用 UTF-8 保存：{path}")
+    try:
+        content = json.loads(text)
+    except json.JSONDecodeError as e:
+        sys.exit(f"[deckforge] ✘ JSON 解析失败：{path} 第 {e.lineno} 行第 {e.colno} 列 — {e.msg}")
+    if not isinstance(content, dict):
+        sys.exit("[deckforge] ✘ content.json 顶层必须是对象：{title, slides[]}")
+    slides = content.get("slides")
+    if not isinstance(slides, list) or not slides:
+        sys.exit("[deckforge] ✘ content.json 需要非空的 slides 数组（至少一页）")
+    return content
 
 
 def main():
@@ -399,12 +486,13 @@ def main():
     ap.add_argument("--init", action="store_true", help="interactive new-deck scaffold (writes content.json + builds)")
     ap.add_argument("--new", metavar="TITLE", help="scaffold a fresh content.json from a title")
     ap.add_argument("-o", "--out", default="dist/index.html", help="output .html")
-    ap.add_argument("--accent", default=None, help="override accent hex (e.g. #1a73e8)")
+    ap.add_argument("--accent", default=None, type=_accent_arg, help="override accent hex (e.g. #1a73e8, 1a73e8, #fff)")
     ap.add_argument("--preset", default=None, help="theme preset: " + ", ".join(PRESETS))
     ap.add_argument("--list-presets", action="store_true", help="list available presets and exit")
     ap.add_argument("--frame", default="clean", help="layout frame: " + ", ".join(FRAMES))
     ap.add_argument("--dark", action="store_true", help="dark theme")
-    ap.add_argument("--watch", action="store_true", help="re-render on content change")
+    ap.add_argument("--lang", default="zh-CN", help="<html lang> value (e.g. zh-CN, en)")
+    ap.add_argument("--watch", action="store_true", help="re-render on content/template change")
     args = ap.parse_args()
 
     if args.list_presets:
@@ -422,20 +510,44 @@ def main():
     if not args.content:
         ap.error("content.json is required (or use --init / --new / --list-presets)")
 
-    content = json.loads(pathlib.Path(args.content).read_text(encoding="utf-8"))
-    build(content, accent=args.accent, preset=args.preset, dark=args.dark, frame=args.frame, out=args.out)
+    if args.preset and args.preset not in PRESETS:
+        ap.error(f"未知 --preset「{args.preset}」，可选：{', '.join(PRESETS)}")
+    if args.frame not in FRAMES:
+        ap.error(f"未知 --frame「{args.frame}」，可选：{', '.join(FRAMES)}")
+
+    try:
+        content = load_content(args.content)
+        build(content, accent=args.accent, preset=args.preset, dark=args.dark,
+              frame=args.frame, out=args.out, lang=args.lang)
+    except KeyError as e:
+        sys.exit(f"[deckforge] ✘ content.json 缺少必需字段：{e}\n"
+                 f"   各 block 的必需字段见 README「内置块类型」或 SKILL.md")
+    except (TypeError, ValueError) as e:
+        sys.exit(f"[deckforge] ✘ 内容字段不合法：{e}")
 
     if args.watch:
-        import os, time
-        print("[deckforge] watching for changes... Ctrl+C to stop")
-        m = os.path.getmtime(args.content)
+        print("[deckforge] watching content + templates for changes... Ctrl+C to stop")
+        import time
+
+        def snapshot():
+            m = {os.path.abspath(args.content): os.path.getmtime(args.content)}
+            for f in TEMP.iterdir():
+                m[str(f)] = f.stat().st_mtime
+            return m
+
+        last = snapshot()
         try:
             while True:
                 time.sleep(1)
-                if os.path.getmtime(args.content) != m:
-                    m = os.path.getmtime(args.content)
-                    content = json.loads(pathlib.Path(args.content).read_text(encoding="utf-8"))
-                    build(content, accent=args.accent, preset=args.preset, dark=args.dark, frame=args.frame, out=args.out)
+                cur = snapshot()
+                if cur != last:
+                    last = cur
+                    try:
+                        content = load_content(args.content)
+                        build(content, accent=args.accent, preset=args.preset, dark=args.dark,
+                              frame=args.frame, out=args.out, lang=args.lang)
+                    except (KeyError, TypeError, ValueError) as e:
+                        print(f"[deckforge] ⚠ 重建失败：{e}（修正后会自动重试）")
         except KeyboardInterrupt:
             pass
 

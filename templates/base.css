@@ -94,7 +94,7 @@ td.lbl{color:var(--ink-dim);white-space:nowrap;font-weight:600}
 .t-dim{color:#618f80}.t-teal{color:#6fd6c0}.t-amb{color:#f0a44b}.t-ok{color:#4fbf92}.t-wt{color:#eafaf5}
 .termcur{display:inline-block;width:8px;height:1em;background:#6fd6c0;vertical-align:-.12em;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.ln{opacity:0}.section.in .ln{animation:caretLine .4s ease forwards}
+.ln{opacity:0}.section.in .ln{animation:caretLine .4s ease var(--d,0s) forwards}
 @keyframes caretLine{from{opacity:0}to{opacity:1}}
 
 /* ---------- vs ---------- */
@@ -153,7 +153,7 @@ td.lbl{color:var(--ink-dim);white-space:nowrap;font-weight:600}
 #cursor .ring{width:34px;height:34px;border:2px solid color-mix(in srgb,var(--accent) 90%, transparent);border-radius:50%;transform:translate(-50%,-50%);position:absolute}
 #cursor .dot{width:6px;height:6px;background:var(--accent);border-radius:50%;transform:translate(-50%,-50%);position:absolute}
 #cursor.press .ring{width:26px;height:26px;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%, transparent)}
-@media(min-width:766px){#cursor{display:block}}
+@media(min-width:761px){#cursor{display:block}}
 @media(max-width:760px){
   .grid,.flow{grid-template-columns:1fr}
   .vs{grid-template-columns:1fr}.vs .mid{padding:12px 0}
@@ -171,9 +171,9 @@ td.lbl{color:var(--ink-dim);white-space:nowrap;font-weight:600}
 body[data-frame="bold"]{ }
 body[data-frame="bold"] h2{font-size:clamp(2.2rem,5.6vw,4.4rem);letter-spacing:-.03em;line-height:1.0}
 body[data-frame="bold"] .eyebrow{letter-spacing:.3em;font-size:.7rem}
-body[data-frame="bold"] .card{border-radius:22px;border-width:0;box-shadow:0 20px 40px -24px rgba(0,0,0,.35)}
+body[data-frame="bold"] .card{border-radius:22px;border-width:0;box-shadow:0 20px 40px -24px rgba(0,0,0,.35);transition:transform .25s}
 body[data-frame="bold"] .wrap{max-width:1200px}
-body[data-frame="bold"] .card:hover{transform:translateY(-4px);transition:transform .25s}
+body[data-frame="bold"] .card:hover{transform:translateY(-4px)}
 
 /* frame: minimal — airy, thin rules, plenty of whitespace */
 body[data-frame="minimal"]{ }
@@ -184,4 +184,3 @@ body[data-frame="minimal"] .card::after{content:none}
 body[data-frame="minimal"] .grid{gap:26px}
 body[data-frame="minimal"] .lead{color:var(--ink-dim);letter-spacing:.01em}
 body[data-frame="minimal"] .section{padding:8vh 10vw}
-body[data-frame="minimal"] body{margin:0}

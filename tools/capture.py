@@ -30,7 +30,6 @@ def _settle_js(width, height):
       var deck = document.getElementById('deck');
       var vp = document.querySelector('.viewport');
       var slides = document.querySelectorAll('.section');
-      var wrap = 1080 > 0 ? 1080 : 1080;
       // make all slides visible & stacked
       slides.forEach(function(s){{ s.classList.add('in'); }});
       // flatten transform
@@ -41,9 +40,12 @@ def _settle_js(width, height):
         var el=document.getElementById(id); if(el) el.style.display='none';
       }});
       var dots=document.getElementById('dots'); if(dots) dots.style.display='none';
+      // terminal lines: jump to their final visible state (skip stagger delays)
+      document.querySelectorAll('.ln').forEach(function(el){{
+        el.style.animation='none'; el.style.opacity='1';
+      }});
       // ensure each section occupies exactly `height` px so pages stack cleanly
       slides.forEach(function(s){{ s.style.height='{height}px'; s.style.overflow='hidden'; }});
-      // reset reveal animation triggers by re-adding 'in' (already done) — nothing more needed
       document.body.style.overflow='visible';
     }})();
     """
@@ -51,7 +53,10 @@ def _settle_js(width, height):
 
 def capture(html_path, out, fmt, width, height, delay):
     """Return list of produced paths."""
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise SystemExit("[capture] 缺少 playwright：pip install playwright && python -m playwright install chromium")
     html = pathlib.Path(html_path).resolve()
     out_p = pathlib.Path(out).resolve()
     produced = []

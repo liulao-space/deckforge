@@ -1,12 +1,12 @@
 {
   "name": "deckforge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Generate polished, animated, single-file HTML slide decks from a JSON spec. Zero-dependency, themeable, agent-friendly.",
   "bin": { "deckforge": "bin/deckforge.js" },
   "files": ["bin", "build.py", "templates", "examples", "SKILL.md", "README.md", "LICENSE"],
   "scripts": {
     "build": "node bin/deckforge.js examples/orca-herdr.json -o dist/orca-herdr.html",
-    "build:all": "node bin/deckforge.js examples/choosing-a-framework.json -o dist/frameworks.html --preset violet --watch",
+    "build:all": "node bin/deckforge.js examples/choosing-a-framework.json -o dist/frameworks.html --preset violet",
     "demo": "node bin/deckforge.js examples/product-launch.json -o dist/demo.html --preset ocean --dark --frame bold",
     "export:png": "python3 tools/capture.py dist/demo.html -o dist/demo.png --format png",
     "export:pdf": "python3 tools/capture.py dist/demo.html -o dist/demo.pdf --format pdf"

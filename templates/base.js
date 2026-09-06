@@ -12,6 +12,7 @@
   var halo = document.getElementById('halo');
   var cursor = document.getElementById('cursor');
   var n = sections.length, lastIdx = -1, busy = false, sideTimer = null;
+  if(n === 0) return; // empty deck: nothing to wire up
 
   function at(i){ return Math.max(0, Math.min(n-1, i)); }
   function markerRange(){ var h = rail.clientHeight - marker.offsetHeight; return h > 0 ? h : 0; }
@@ -53,16 +54,19 @@
 
   // Wheel: inner content first, then page — with an ACCUMULATION threshold so a
   // single trackpad/mouse gesture (many small deltaY) turns into exactly ONE page.
-  var wheelAcc = 0, WHEEL_THRESHOLD = 120;
+  var wheelAcc = 0, WHEEL_THRESHOLD = 120, wheelTimer = null;
   document.querySelector('.viewport').addEventListener('wheel', function(e){
     e.preventDefault();
     if(busy){ wheelAcc = 0; return; }           // mid-transition: ignore & reset
     var sec = sections[lastIdx];
     if(innerScroll(sec, e.deltaY)) return;      // let inner content scroll
     wheelAcc += e.deltaY;
+    // idle decay: a pause resets accumulation so stale deltas never stack up
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(function(){ wheelAcc = 0; }, 240);
     if(Math.abs(wheelAcc) >= WHEEL_THRESHOLD){   // only flip when enough accumulated
       var dir = wheelAcc > 0 ? 1 : -1;
-      wheelAcc = 0;
+      wheelAcc = 0; clearTimeout(wheelTimer);
       go(lastIdx + dir);
     }
   }, {passive:false});

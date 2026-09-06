@@ -28,7 +28,8 @@ so it works with any preset and in dark mode.
 ## 3. Add an inline icon
 Append a `<symbol id="i-name" viewBox="0 0 24 24">` to `templates/icons.svg`.
 Keep stroke style consistent (stroke-width ~1.9, round caps). Reference it as
-`{icon: "i-name"}` in content — CI will catch any undefined reference.
+`{icon: "name"}` in content (a leading `i-` also works) — CI will catch any
+undefined reference.
 
 ## Style guidelines
 - **Engine owns transport & styling.** Don't add your own `scroll-snap`, custom

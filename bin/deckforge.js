@@ -20,6 +20,7 @@ if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
   console.log('  --frame <name>        clean|bold|minimal (layout, not just color)');
   console.log('  --accent <hex>        override accent color');
   console.log('  --dark                dark theme');
+  console.log('  --lang <code>         <html lang> value (default zh-CN)');
   console.log('  --watch               re-render on file change');
   console.log('  --list-presets        list available presets');
   console.log('  --init                interactive new-deck scaffold');
@@ -27,10 +28,22 @@ if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
   process.exit(0);
 }
 
-const r = spawnSync('python3', [PY].concat(args), { stdio: 'inherit' });
-if (r.error && r.error.code === 'ENOENT') {
-  console.error('\n⚠️  DeckForge needs Python 3 (stdlib only, no deps). Install it then retry.');
-  console.error('   macOS: brew install python3 · Ubuntu: sudo apt install python3 · Windows: python.org');
+function run(cmd) {
+  return spawnSync(cmd, [PY].concat(args), { stdio: 'inherit' });
+}
+
+let r = run('python3');
+// Windows often ships `python` without the `python3` alias
+if (r.error && r.error.code === 'ENOENT' && process.platform === 'win32') {
+  r = run('python');
+}
+if (r.error) {
+  if (r.error.code === 'ENOENT') {
+    console.error('\n⚠️  DeckForge needs Python 3 (stdlib only, no deps). Install it then retry.');
+    console.error('   macOS: brew install python3 · Ubuntu: sudo apt install python3 · Windows: python.org');
+  } else {
+    console.error(`\n⚠️  Failed to launch python3: ${r.error.message}`);
+  }
   process.exit(1);
 }
 process.exit(r.status ?? 0);

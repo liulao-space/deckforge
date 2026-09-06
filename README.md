@@ -43,7 +43,7 @@ open out.html            # macOS
 
 **方式二 · curl 一键安装**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<you>/deckforge/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/liulao-space/deckforge/main/install.sh | sh
 deckforge examples/orca-herdr.json -o out.html
 ```
 
@@ -128,7 +128,7 @@ deckforge --new "新能源技术周会"      # 生成 content.json
 
 **内联标记**：`**加粗**`、`` `code` ``、`[链接](url)`、`<br>`（换行）。
 
-**图标**：`icon` / `tile` 字段填图标名（无 `i-` 前缀），见 `templates/icons.svg`。支持 ORCA / HERDR / 终端 / 分支 / 机器人 / 地球 / 眼睛 等 20+ 个线性图标，直接追加 `<symbol>` 即可自定义。
+**图标**：`icon` / `tile` 字段填图标名（推荐无 `i-` 前缀；带前缀也兼容），见 `templates/icons.svg`。支持 ORCA / HERDR / 终端 / 分支 / 机器人 / 地球 / 眼睛 等 20+ 个线性图标，直接追加 `<symbol>` 即可自定义。
 
 ---
 
@@ -235,7 +235,12 @@ deckforge/
   注释内容会当作文本渲染，导致页面顶部出现 `<symbol id="i-...">` 乱码、标题下移。
   （已修复）
 - **滚轮偶尔连翻多屏**：触控板单次手势会产生大量小幅 `deltaY`，引擎现改为**累计阈值**，
-  单次手势恰好翻一屏，动画进行中忽略输入。（已修复）
+  单次手势恰好翻一屏，动画进行中忽略输入，且停顿 ~240ms 后累计自动清零。（已修复）
+- **深色模式边框颜色写死**：`--line` 原先硬编码为 teal 色调，换任何其他 preset 的
+  深色版边框都不跟色；现在由 accent 自动派生。（已修复）
+- **输出 HTML 注入**：`terminal`/`steps.code`/`cards.num`/`table.marks`/`vs.badge`
+  等字段原样拼入 HTML，`**`/反引号标记也不配对；现在统一转义、白名单校验，
+  `icon` 名自动补 `i-` 前缀（带不带前缀都能用）。（已修复）
 
 ## 贡献 & 许可
 
