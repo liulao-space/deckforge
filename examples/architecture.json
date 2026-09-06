@@ -1,0 +1,70 @@
+{
+  "title": "事件驱动架构 · 技术分享",
+  "slides": [
+    {
+      "align": "center",
+      "title": "事件驱动架构",
+      "lead": "为什么「微服务 + 事件总线」能让系统解耦、又能快速扩展？<br>用一张图 + 几个真实场景说清楚。",
+      "blocks": [
+        { "type": "pills", "items": [
+          { "text": "解耦", "icon": "i-branch", "kind": "b" },
+          { "text": "可扩展", "icon": "i-stack", "kind": "plain" },
+          { "text": "可回溯", "icon": "i-loop", "kind": "am" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "问题",
+      "title": "同步调用把系统焊死了",
+      "lead": "用户下单 → 扣库存 → 发短信 → 记账，全都同步串行。**任何一环慢，整条链路都卡。**",
+      "blocks": [
+        { "type": "terminal", "lines": [
+          "$ POST /order",
+          {"color": "amb", "text": "├─ deduct stock ............ 43ms"},
+          {"color": "amb", "text": "├─ send SMS ............... 210ms  ← 它一发短信，下单就等"},
+          {"color": "dim", "text": "└─ write ledger ............. 36ms"},
+          {"color": "ok", "text": "✔ order created · 总延迟 289ms，含一个无关紧要的短信"}
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "方案",
+      "title": "改成「事件」驱动",
+      "lead": "下单后只发一个 `order.created` 事件，谁需要谁自己去订阅、自己处理，互不阻塞。",
+      "blocks": [
+        { "type": "vs", "left": {
+            "name": "同步调用", "icon": "i-branch", "title": "紧耦合链路", "tag": "旧",
+            "items": ["订单等短信、库存、记账**串行**", "一方故障拖垮全局", "加需求就得改主流程"]
+          }, "right": {
+            "name": "事件驱动", "icon": "i-stack", "title": "松耦合广播", "tag": "新",
+            "items": ["下单只发事件，其余**异步消费**", "消费者独立扩缩容", "新需求=新订阅者，主流程不动"]
+          }}
+      ]
+    },
+    {
+      "eyebrow": "落地",
+      "title": "从 0 到一个事件总线",
+      "blocks": [
+        { "type": "steps", "items": [
+          { "head": "定义事件契约", "body": "先定事件名与字段，这是团队接口。", "code": "order.created  { orderId, userId, amount }" },
+          { "head": "选一个事件网关", "body": "Kafka / NATS / SQS 都行，先跑通一条链路。", "code": "nats://broker:4222 · topic: orders" },
+          { "head": "先做「削峰」这一个", "body": "别一次上太多。先把最痛的同步阻塞拆成异步。", "code": "下单 → 发布 order.created → 立即返回" },
+          { "head": "再逐步移到异步消费", "body": "库存、通知分别建消费者，量起来再拆。" }
+        ]}
+      ]
+    },
+    {
+      "align": "center",
+      "eyebrow": "一句总结",
+      "title": "边界的本质是「不互相等」",
+      "blocks": [
+        { "type": "quote", "text": "**事件驱动不是技术选型，而是一种「谁都不许等谁」的协作约定。**" },
+        { "type": "pills", "items": [
+          { "text": "发事件", "icon": "i-play", "kind": "b" },
+          { "text": "订阅", "icon": "i-loop", "kind": "plain" },
+          { "text": "各自扩展", "icon": "i-stack", "kind": "am" }
+        ]}
+      ]
+    }
+  ]
+}

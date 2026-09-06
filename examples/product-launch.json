@@ -1,0 +1,75 @@
+{
+  "title": "aurora · 新品发布会",
+  "slides": [
+    {
+      "align": "center",
+      "title": "Aurora 2.0",
+      "grad": true,
+      "lead": "把「延迟」从秒级压到毫秒，让云成为你的本地。<br>一个真正为开发者造的世界。",
+      "blocks": [
+        { "type": "pills", "items": [
+          { "text": "全新边缘网络", "icon": "i-globe", "kind": "b" },
+          { "text": "毫秒级冷启动", "icon": "i-play", "kind": "am" },
+          { "text": "Python / JS / Rust 全支持", "icon": "i-stack", "kind": "plain" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "为什么现在",
+      "title": "后台也值得拥有「本地」的速度",
+      "lead": "过去一年，我们把 6 亿次请求延迟分布看了一遍：**90% 的慢,** 都来自「跨区出网」和「冷启动」。我们决定彻底重写运行时。",
+      "blocks": [
+        { "type": "cards", "cols": 3, "items": [
+          { "tile": "i-globe", "title": "全球 32 个边缘节点", "text": "请求就近接入，不再绕回主区域。" },
+          { "tile": "i-play", "title": "冷启动 < 8ms", "text": "快照+预启动，秒开不再等云雾。" },
+          { "tile": "i-stack", "title": "一键迁入", "text": "现有代码几乎零改动即可迁移。" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "三个升级",
+      "title": "这次我们改了三件大事",
+      "blocks": [
+        { "type": "card-list", "title": "新运行时 Aurora Runtime", "items": [
+          { "icon": "i-play", "text": "冷启动 < 8ms，热路径零拷贝" },
+          { "icon": "i-stack", "text": "Rust 核心 + 你的语言绑定，性能与生态兼得" },
+          { "icon": "i-note", "text": "错误追踪与自定义日志默认集成" }
+        ]},
+        { "type": "terminal", "lines": [
+          "$ aurora deploy app --region global",
+          {"color": "ok", "text": "✔ build 2.1s · cold start 6ms · 32 regions"},
+          {"color": "dim", "text": "▪ rolling out -> ap-east, eu-west, us-west"},
+          {"color": "amb", "text": "▪ 6 regions live · remaining 26 in ~40s"},
+          {"color": "teal", "text": "● ready  https://app.aurora.dev"}
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "定价",
+      "title": "按用付费，不再按月被绑架",
+      "blocks": [
+        { "type": "table", "header": ["计划", "每月免费额度", "超出单价"],
+          "marks": [["","",""],["","",""],["","",""]],
+          "rows": [
+            ["Hobby", "100 万次请求", "免费"],
+            ["Pro", "1000 万次请求", "$0.20 / 百万"],
+            ["Team", "不限", "按量 + 7 折"]
+          ]
+        },
+        { "type": "quote", "text": "发布会当天注册，团队版首月 5 折。" }
+      ]
+    },
+    {
+      "align": "center",
+      "eyebrow": "即刻上线",
+      "title": "今天就能用",
+      "blocks": [
+        { "type": "pills", "align": "center", "items": [
+          { "text": "先试免费层", "icon": "i-play", "kind": "b" },
+          { "text": "导入你的仓库", "icon": "i-branch", "kind": "plain" },
+          { "text": "一键上线", "icon": "i-globe", "kind": "am" }
+        ]}
+      ]
+    }
+  ]
+}

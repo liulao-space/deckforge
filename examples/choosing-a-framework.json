@@ -1,0 +1,68 @@
+{
+  "title": "如何选型：两个都不错，怎么选",
+  "accent": "#1a73e8",
+  "slides": [
+    {
+      "title": "选型演示 · 块类型全覆盖",
+      "lead": "这一页用于验证 **vs / flow / steps / warn / terminal / card-list** 等全部块都能正确渲染。",
+      "blocks": [
+        { "type": "pills", "items": [
+          { "text": "方案 A", "icon": "i-branch", "kind": "b" },
+          { "text": "方案 B", "icon": "i-socket", "kind": "am" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "对比",
+      "title": "方案 A vs 方案 B",
+      "lead": "用 vs 块做左右对比，非常适合「二选一」的主题。",
+      "blocks": [
+        { "type": "vs", "left": {
+            "name": "方案 A", "icon": "i-orca", "title": "围绕「任务」画边界", "tag": "A 阵营",
+            "items": ["仓库绝不碰撞 → 任务级隔离", "竞争实现、干净评审", "人在驾驶位看 diff"]
+          }, "right": {
+            "name": "方案 B", "icon": "i-herdr", "title": "围绕「会话」画边界", "tag": "B 阵营",
+            "items": ["会话绝不消失 → 持久化控制面", "长驻远程、实时 PTY", "让 Agent 自己开窗派单"]
+          }}
+      ]
+    },
+    {
+      "eyebrow": "决策",
+      "title": "三步决定选谁",
+      "lead": "用 flow 块做决策节点。",
+      "blocks": [
+        { "type": "flow", "nodes": [
+          { "icon": "i-eye", "title": "想「看见」整群？", "desc": "要 diff、评审、手机", "tag": "orca", "tag_text": "选 A" },
+          { "icon": "i-term", "title": "想「脚本化」？", "desc": "要 API、持久、远程", "tag": "her", "tag_text": "选 B" },
+          { "icon": "i-branch", "title": "仓库不能冲突？", "desc": "实验分支、并行变体", "tag": "orca", "tag_text": "先 A" },
+          { "icon": "i-socket", "title": "会话不能丢？", "desc": "断线重连、长驻", "tag": "her", "tag_text": "先 B" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "实操",
+      "title": "一步步上手",
+      "lead": "用 steps 块做教程，可带代码块。",
+      "blocks": [
+        { "type": "steps", "items": [
+          { "head": "安装", "body": "一条命令即可，无额外依赖。", "code": "$ curl -fsSL https://example.com/install.sh | sh\n$ verify --version" },
+          { "head": "启动", "body": "在你常用的终端里即可。", "code": "$ app" },
+          { "head": "并行开 Agent", "body": "每个 pane 放一个 Agent，状态一眼可见。" }
+        ]},
+        { "type": "warn", "text": "这里是提示条：**边界要分清**，别为了并行而并行。" }
+      ]
+    },
+    {
+      "eyebrow": "结尾",
+      "title": "一句话总结",
+      "align": "center",
+      "blocks": [
+        { "type": "quote", "text": "**看得见** → 选 A；**让它自己开** → 选 B。" },
+        { "type": "pills", "align": "center", "items": [
+          { "text": "repo 别打架 → A", "icon": "i-branch", "kind": "b" },
+          { "text": "会话别消失 → B", "icon": "i-loop", "kind": "am" }
+        ]}
+      ]
+    }
+  ]
+}

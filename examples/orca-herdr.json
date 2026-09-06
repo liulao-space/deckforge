@@ -1,0 +1,92 @@
+{
+  "title": "Orca vs Herdr · 舰队如何指挥",
+  "accent": "#12876f",
+  "slides": [
+    {
+      "align": "center",
+      "title": "Orca vs Herdr",
+      "grad": false,
+      "lead": "同时指挥一群 AI 编码 Agent，你是想**看得见**，还是让机器**自己开**？<br>一句话看懂两者的核心差别。",
+      "blocks": [
+        { "type": "pills", "align": "center", "items": [
+          { "text": "Orca · 可视化 Agent IDE", "icon": "i-orca", "kind": "b" },
+          { "text": "Herdr · 终端 Agent 多路复用器", "icon": "i-herdr", "kind": "am" }
+        ]},
+        { "type": "pills", "align": "center", "margin": 18, "items": [
+          { "text": "均为开源 / 免费运行", "icon": "i-globe", "kind": "plain" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "01 · 背景",
+      "title": "一个终端只跑一个 Agent 的时代结束了",
+      "lead": "现在大家想要的是**同时驱动多个编码 Agent**（Claude Code / Codex / OpenCode / Cursor…）并行干活。这带来三个新问题：",
+      "blocks": [
+        { "type": "cards", "cols": 3, "items": [
+          { "num": "①", "title": "会「打架」", "text": "多个 Agent 改同一仓库会互相覆盖，需要每个任务一个独立的 git worktree。" },
+          { "num": "②", "title": "不知道状态", "text": "切来切去也看不清谁在卡住、谁在干活、谁完成了。" },
+          { "num": "③", "title": "谁来指挥？", "text": "让你在 N 个窗口间切换，还是让另一个 Agent / 脚本自动调度？" }
+        ]},
+        { "type": "quote", "text": "Orca 与 Herdr 都解决这些问题，但从相反的两端切入。" }
+      ]
+    },
+    {
+      "eyebrow": "02 · 认识 Orca",
+      "title": "Orca —— 你能看见的驾驶舱",
+      "lead": "一款可下载的 **Agent IDE**，本质是**图形化桌面应用**（YC 系公司 Stably AI，TypeScript 编写）。",
+      "blocks": [
+        { "type": "card-list", "title": "它是「一个 App」", "items": [
+          { "icon": "i-window", "text": "自带**终端 + 文件编辑器 + git 跟踪**" },
+          { "icon": "i-board", "text": "任务 / 自动化 / 评审面板集中在一窗" },
+          { "icon": "i-phone", "text": "配套 iOS / Android **手机 App**" },
+          { "icon": "i-click", "text": "在真实应用里**点选**喂给 Agent（点击即上下文）" },
+          { "icon": "i-laptop", "text": "macOS / Windows / Linux 全桌面支持" }
+        ]},
+        { "type": "quote", "text": "一句话：**任务隔离 + 可视化评审**，适合你坐在驾驶位，亲眼看每份 diff、每次点击。" }
+      ]
+    },
+    {
+      "eyebrow": "03 · 认识 Herdr",
+      "title": "Herdr —— 一个二进制，而不是一个 App",
+      "lead": "为 **AI 时代重写的 tmux**：单文件 **~10MB 的 Rust 二进制**，运行在你原本就在用的终端里，为每个 Agent 开一个真实 pane，并在后台守护它们。",
+      "blocks": [
+        { "type": "card-list", "title": "核心亮点", "items": [
+          { "icon": "i-socket", "text": "**零配置状态感知**：自动识别 working / blocked / done / idle" },
+          { "icon": "i-note", "text": "**Socket API**：别的 Agent 可来开窗、读输出、订阅状态" },
+          { "icon": "i-loop", "text": "**会话持久**：断网、关笔记本也能重新 attach" },
+          { "icon": "i-lock", "text": "无账号、无遥测 · 开源 AGPL-3.0" }
+        ]},
+        { "type": "terminal", "lines": [
+          "$ herdr   # 启动后台服务器，打开工作区",
+          {"color": "teal", "text": "▸ pane1  claude    [working]"},
+          {"color": "amb", "text": "▸ pane2  codex     [blocked] 等 CI"},
+          {"color": "ok", "text": "▸ pane3  opencode  [done]"},
+          {"color": "dim", "text": "▸ socket  spawn pane4 ← 另一个 Agent 自动派单"}
+        ]},
+        { "type": "quote", "text": "一句话：**一个终端做整群 Agent 的控制面**，人可以走开，甚至让另一个 Agent 当 mission control。" }
+      ]
+    },
+    {
+      "eyebrow": "04 · 对比",
+      "title": "一张表看懂差别",
+      "blocks": [
+        { "type": "table", "header": ["维度", "Orca", "Herdr"],
+          "marks": [["", "", ""],["", "", ""],["", "n", "y"],["", "y", "n"],["", "y", "y"],["", "p", "y"],["", "y", "y"],["", "n", "y"],["", "p", "y"],["", "", ""]],
+          "rows": [
+            ["形态", "桌面 App（Agent IDE）", "命令行二进制"],
+            ["技术栈", "TypeScript", "Rust（~10MB）"],
+            ["跑在你现有终端里？", "✗ 自带窗口", "✓ 就在终端里"],
+            ["自带文件编辑器", "✓", "✗ 用自己的编辑器"],
+            ["并行 Agent + worktree 隔离", "✓", "✓（配合流程）"],
+            ["Agent 状态（看状态）", "△ 任务视图", "✓ 一等公民"],
+            ["远程 / 手机", "✓ 手机 App", "✓ SSH 重连"],
+            ["可被 Agent / 脚本驱动", "✗", "✓ Socket API"],
+            ["账号 / 遥测", "△ 需确认 · 有企业版", "✓ 无账号无遥测"],
+            ["开源许可", "MIT", "AGPL-3.0"]
+          ]
+        },
+        { "type": "quote", "text": "两者**不是谁的增强版**，而是从两个不同的边界切入。" }
+      ]
+    }
+  ]
+}

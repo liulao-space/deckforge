@@ -1,0 +1,68 @@
+{
+  "title": "AI 时代的学习方法 · 教学",
+  "slides": [
+    {
+      "align": "center",
+      "title": "让 AI 成为你的学习搭档",
+      "grad": true,
+      "lead": "真正拉开差距的，不是「会不会用 AI」，而是**会不会提问、会不会验证、会不会复盘**。",
+      "blocks": [
+        { "type": "pills", "items": [
+          { "text": "提问", "icon": "i-note", "kind": "b" },
+          { "text": "验证", "icon": "i-eye", "kind": "am" },
+          { "text": "复盘", "icon": "i-loop", "kind": "plain" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "三大误区",
+      "title": "多数人用 AI 用得不对",
+      "blocks": [
+        { "type": "cards", "cols": 3, "items": [
+          { "num": "①", "title": "把 AI 当「答案机」", "text": "直接要结论，跳过理解过程，忘得更快。" },
+          { "num": "②", "title": "从不验证", "text": "AI 会自信地编造，你需要能戳穿它。" },
+          { "num": "③", "title": "只问一次", "text": "单轮对话质量远低于多轮追问和迭代。" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "方法一",
+      "title": "把问题问成「螺旋」",
+      "lead": "从宽到窄、从浅到深，一次比一次更具体，AI 的答案会一次比一次靠谱。",
+      "blocks": [
+        { "type": "steps", "items": [
+          { "head": "先给场景与目标", "body": "别只说「教我 Python」，要说「我要用 Python 写一个抓取网页的小脚本，没用过 Python」。", "code": "「我要做一个抓取网页的小脚本，没写过 Python」" },
+          { "head": "再要范围与约束", "body": "告诉它你的水平、时间、想避免的部分。", "code": "「只教最必要的 20%，别讲面向对象」" },
+          { "head": "追问「为什么」", "body": "理解原理才记得住，别只背例子。", "code": "「为什么这里要用 requests 而不是 urllib？」" },
+          { "head": "让它出题考你", "body": "主动要测验，比被动看强得多。" }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "方法二",
+      "title": "学会「验证」—— 这是决定性的分水岭",
+      "lead": "AI 会一本正经地胡说。养成一句口头禅：「**你确定？**」然后自己求证。",
+      "blocks": [
+        { "type": "pills", "items": [
+          { "text": "让 AI 给可运行示例", "icon": "i-play", "kind": "b" },
+          { "text": "自己动手跑一遍", "icon": "i-term", "kind": "plain" },
+          { "text": "交叉查证引用", "icon": "i-eye", "kind": "am" }
+        ]},
+        { "type": "warn", "text": "凡是**具体到「某个库的版本号、某行代码、某个 API」的答案**，都值得你亲手验证一遍。" }
+      ]
+    },
+    {
+      "align": "center",
+      "eyebrow": "一句总结",
+      "title": "别让 AI 替你思考",
+      "blocks": [
+        { "type": "quote", "text": "**AI 最好的用法，是放大你的已有思考，而不是替代它。**" },
+        { "type": "pills", "items": [
+          { "text": "先想 • 再问", "icon": "i-note", "kind": "b" },
+          { "text": "先验 • 再信", "icon": "i-eye", "kind": "am" },
+          { "text": "先做 • 再问", "icon": "i-loop", "kind": "plain" }
+        ]}
+      ]
+    }
+  ]
+}
