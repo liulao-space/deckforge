@@ -10,7 +10,9 @@
 <br>
 <b>真实产物截图 — 同一 JSON，一键换装、一键导出</b>
 <br>
-<img src="export/readme/launch-full.png" alt="DeckForge 真实输出 · 深色海洋蓝发布会" width="100%">
+<img src="export/readme/launch-full.png" alt="DeckForge 真实输出 · Orca vs Herdr Agent 管理工具指南（浅色 · teal · 9 页）" width="100%">
+<br><br>
+<p align="center"><sub>逐页截图见 <code>export/readme/orca-herdr-pages/</code></sub></p>
 <br><br>
 <img src="posters/strip.svg" alt="DeckForge theme presets" width="100%">
 
